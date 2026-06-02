@@ -1,9 +1,11 @@
+"use client";
+
 import React from "react";
 import { PopularMoviePoster } from "./PopularMoviePoster";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export const PopularMovies = ({ movies }: { movies: any }) => {
+export const PopularBooks = ({ books }: { books: any }) => {
   const path = usePathname();
 
   return (
@@ -23,15 +25,18 @@ export const PopularMovies = ({ movies }: { movies: any }) => {
       </div>
 
       <div className="mb-10 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {!movies &&
+        {!books &&
           "No populars available at the moment. Please try again later."}
 
-        {movies &&
-          movies
-            .filter((movie) => !!movie.poster_path)
+        {Array.isArray(books) &&
+          books
+            .filter((book) => !!book.cover_id)
             .slice(0, 6)
-            .map((movie) => (
-              <PopularMoviePoster key={movie.id} movie={movie} />
+            .map((book) => (
+              <PopularMoviePoster
+                key={book.cover_id}
+                book={book}
+              />
             ))}
       </div>
     </>

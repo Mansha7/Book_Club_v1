@@ -4,16 +4,21 @@ import Image from "next/image";
 import FavouriteButton from "../Buttons/FavoriteButton";
 import { WatchButton } from "../Buttons/WatchButton";
 import Link from "next/link";
-import { auth, db } from "app/firebase/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { auth, getUserById } from "app/supabase/supabase";
 
 export const PopularMoviePoster = ({
-  movie,
+  book,
   compact = false,
 }: {
-  movie: any;
+  book: any;
   compact?: boolean;
 }) => {
+  const itemId = book?.cover_id;
+  const title = book?.title ?? "Untitled";
+  const posterSrc = `https://covers.openlibrary.org/b/id/${book.cover_id}-M.jpg`;
+  const href = book?.key ? `https://openlibrary.org${book.key}` : "/";
+  const itemIdString = itemId?.toString() ?? "";
+
   const [isMobile, setIsMobile] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -24,10 +29,12 @@ export const PopularMoviePoster = ({
   const setIsMovieFavourite = async () => {
     if (!auth || !auth.currentUser) return;
     const userId = auth.currentUser.uid;
-    const userDoc = await getDoc(doc(db, "users", userId));
+    const user = await getUserById(userId);
 
-    const userFavs = userDoc?.data()?.favourites;
-    const isFavorite = userFavs.some((movies) => movies?.movieID === movie.id);
+    const userFavs = user?.favourites ?? [];
+    const isFavorite = userFavs.some(
+      (books) => books?.movieID?.toString() === itemId?.toString()
+    );
     setIsFavourite(isFavorite);
   };
 
@@ -35,11 +42,11 @@ export const PopularMoviePoster = ({
     if (!auth || !auth.currentUser) return;
 
     const userId = auth.currentUser.uid;
-    const userDoc = await getDoc(doc(db, "users", userId));
+    const user = await getUserById(userId);
 
-    const userWatched = userDoc?.data()?.watched;
+    const userWatched = user?.watched ?? [];
     const isWatched = userWatched.some(
-      (movies) => movies?.movieID === movie.id
+      (books) => books?.movieID?.toString() === itemId?.toString()
     );
     setIsWatched(isWatched);
   };
@@ -53,7 +60,7 @@ export const PopularMoviePoster = ({
     if (auth && auth.currentUser) {
       setInitialMovieStatuses();
     }
-  }, [movie, auth.currentUser]);
+  }, [itemId, auth.currentUser]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -68,11 +75,13 @@ export const PopularMoviePoster = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  if (!itemIdString || !posterSrc) return null;
+
   return (
     <div
       className={
         (compact ? "w-[32.33%] " : "") +
-        `hover:border-3 border-pb-grey/25 hover:border-pb-grey relative aspect-[2/3] basis-1/6 rounded border border-solid shadow-[0_0_1px_1px_rgba(20,24,28,1)] hover:cursor-pointer hover:rounded`
+        `hover:border-3 relative aspect-[2/3] basis-1/6 rounded border border-solid border-pb-grey/25 shadow-[0_0_1px_1px_rgba(20,24,28,1)] hover:cursor-pointer hover:rounded hover:border-pb-grey`
       }
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
@@ -80,14 +89,13 @@ export const PopularMoviePoster = ({
           setIsHovered(false);
         }
       }}
-      key={movie.id}
     >
-      <Link href={"/movie/" + movie.id}>
+      <Link href={href}>
         <div className="relative h-full w-full">
           <Image
-            src={`https://image.tmdb.org/t/p/w500/${movie.poster_path}`}
+            src={posterSrc}
             fill
-            alt={movie.title}
+            alt={title}
             className="rounded border object-cover"
           />
         </div>
@@ -99,14 +107,14 @@ export const PopularMoviePoster = ({
           style={{ backgroundColor: "rgba(0,0,0,0.8)" }}
         >
           <FavouriteButton
-            id={movie.id}
-            title={movie.title}
+            id={itemIdString}
+            title={title}
             isFavourite={isFavourite}
             setIsFavourite={setIsFavourite}
           />
           <WatchButton
-            id={movie.id}
-            title={movie.title}
+            id={itemIdString}
+            title={title}
             isWatched={isWatched}
             setIsWatched={setIsWatched}
           />

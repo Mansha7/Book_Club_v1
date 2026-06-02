@@ -1,9 +1,12 @@
 import React, { Dispatch, SetStateAction } from "react";
-import { doc, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
 import favIcon from "./fav.png";
 import removeFavIcon from "./remFav.png";
 import Image from "next/image";
-import { auth, db } from "../../firebase/firebase";
+import {
+  addToUserArray,
+  auth,
+  removeFromUserArray,
+} from "../../supabase/supabase";
 import { createFavouritePopup, PopupAction } from "../../utils";
 
 export const FavouriteButton = ({
@@ -36,11 +39,7 @@ export const FavouriteButton = ({
     }
 
     const userId = auth.currentUser.uid;
-    const userRef = doc(db, "users", userId);
-
-    await updateDoc(userRef, {
-      favourites: arrayUnion({ movieID: id }),
-    }).then(() => {
+    await addToUserArray(userId, "favourites", { movieID: id }).then(() => {
       setIsFavourite(true);
       createFavouritePopup(title, PopupAction.FAVOURITE);
     });
@@ -52,10 +51,11 @@ export const FavouriteButton = ({
     }
 
     const userId = auth.currentUser.uid;
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
-      favourites: arrayRemove({ movieID: id }),
-    }).then(() => {
+    await removeFromUserArray(
+      userId,
+      "favourites",
+      (movie) => movie?.movieID?.toString() === id.toString()
+    ).then(() => {
       setIsFavourite(false);
       createFavouritePopup(title, PopupAction.REMOVED);
     });

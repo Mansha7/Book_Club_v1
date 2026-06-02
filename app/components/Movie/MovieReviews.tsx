@@ -2,14 +2,14 @@
 import React, { useEffect, useState } from "react";
 
 import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-} from "firebase/firestore";
-import { auth, db } from "../../firebase/firebase";
+  addToMovieReviews,
+  addToUserArray,
+  auth,
+  getMovieById,
+  removeFromMovieReviews,
+  removeFromUserArray,
+  getCurrentUser,
+} from "../../supabase/supabase";
 import { createReviewPopup, PopupAction } from "../../utils";
 import { MovieReviewCompact } from "../Review/MovieReviewCompact";
 import moment from "moment";
@@ -18,6 +18,7 @@ import { Review } from "app/types";
 export const MovieReviews = ({ movie }) => {
   const [review, setReview] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
 
   const submitReview = async (e: any, review: string) => {
     e.preventDefault();
@@ -45,14 +46,11 @@ export const MovieReviews = ({ movie }) => {
     if (!auth.currentUser) return;
 
     const userId = auth.currentUser.uid;
-    const userRef = doc(db, "users", userId);
 
-    await updateDoc(userRef, {
-      reviews: arrayUnion({
-        movieID: movie.id,
-        review: review,
-        timestamp: getDate(),
-      }),
+    await addToUserArray(userId, "reviews", {
+      movieID: movie.id,
+      review: review,
+      timestamp: getDate(),
     });
   };
 
@@ -61,9 +59,9 @@ export const MovieReviews = ({ movie }) => {
    */
   const saveMovieReview = async () => {
     try {
-      const movieDoc = await getDoc(doc(db, "movies/" + movie.id));
+      const movieDoc = await getMovieById(movie.id);
 
-      if (movieDoc.exists()) {
+      if (movieDoc) {
         // Add review to existing movie
         await addMovieReview();
       } else {
@@ -81,18 +79,14 @@ export const MovieReviews = ({ movie }) => {
   const addMovieReview = async () => {
     if (!auth.currentUser) return;
 
-    const movieRef = doc(db, "movies/" + movie.id);
-
     try {
-      await updateDoc(movieRef, {
-        reviews: arrayUnion({
-          movieID: movie.id,
-          userName: auth.currentUser.displayName,
-          userURL: auth.currentUser.photoURL,
-          review: review,
-          uid: auth.currentUser.uid,
-          timestamp: getDate(),
-        }),
+      await addToMovieReviews(movie.id, {
+        movieID: movie.id,
+        userName: auth.currentUser.displayName,
+        userURL: auth.currentUser.photoURL,
+        review: review,
+        uid: auth.currentUser.uid,
+        timestamp: getDate(),
       });
 
       createReviewPopup(PopupAction.SUCCESS);
@@ -105,17 +99,13 @@ export const MovieReviews = ({ movie }) => {
     if (!auth.currentUser) return;
 
     try {
-      await setDoc(doc(db, "movies/" + movie.id), {
-        reviews: [
-          {
-            movieID: movie.id,
-            review: review,
-            userName: auth.currentUser.displayName,
-            userURL: auth.currentUser.photoURL,
-            uid: auth.currentUser.uid,
-            timestamp: getDate(),
-          },
-        ],
+      await addToMovieReviews(movie.id, {
+        movieID: movie.id,
+        review: review,
+        userName: auth.currentUser.displayName,
+        userURL: auth.currentUser.photoURL,
+        uid: auth.currentUser.uid,
+        timestamp: getDate(),
       });
     } catch (err) {
       console.error("Error creating new movie document with review:", err);
@@ -123,12 +113,12 @@ export const MovieReviews = ({ movie }) => {
   };
 
   const fetchReviewsByMovie = async () => {
-    const movieDoc = await getDoc(doc(db, "movies/" + movie.id));
-    if (!movieDoc.exists()) {
+    const movieDoc = await getMovieById(movie.id);
+    if (!movieDoc) {
       setReviews([]);
       return;
     }
-    const movieReviews = movieDoc.data().reviews;
+    const movieReviews = movieDoc.reviews;
     if (!movieReviews) {
       setReviews([]);
       return;
@@ -145,12 +135,13 @@ export const MovieReviews = ({ movie }) => {
       timestamp: review.timestamp,
     };
 
-    const movieRef = doc(db, "movies", review.movieID.toString());
-    const userRef = doc(db, "users", review.uid);
-
-    await updateDoc(movieRef, {
-      reviews: arrayRemove(review),
-    })
+    await removeFromMovieReviews(
+      review.movieID,
+      (movieReview) =>
+        movieReview.uid === review.uid &&
+        movieReview.review === review.review &&
+        movieReview.timestamp === review.timestamp
+    )
       .then(() => {
         createReviewPopup(PopupAction.REMOVED);
         fetchReviewsByMovie();
@@ -160,9 +151,14 @@ export const MovieReviews = ({ movie }) => {
         createReviewPopup(PopupAction.ERROR);
       });
 
-    await updateDoc(userRef, {
-      reviews: arrayRemove(userProfileReview),
-    }).catch((err) => {
+    await removeFromUserArray(
+      review.uid,
+      "reviews",
+      (value) =>
+        value.movieID?.toString() === userProfileReview.movieID.toString() &&
+        value.review === userProfileReview.review &&
+        value.timestamp === userProfileReview.timestamp
+    ).catch((err) => {
       console.error(err);
     });
   };
@@ -172,6 +168,7 @@ export const MovieReviews = ({ movie }) => {
   };
   useEffect(() => {
     fetchReviewsByMovie();
+    getCurrentUser().then(setCurrentUser);
   }, []);
 
   return (
@@ -186,30 +183,30 @@ export const MovieReviews = ({ movie }) => {
           ))
         : ""}
 
-      {!reviews.length && auth && (
-        <p className="text-sh-grey pt-2 text-base">Write the first review!</p>
+      {!reviews.length && currentUser && (
+        <p className="pt-2 text-base text-sh-grey">Write the first review!</p>
       )}
 
-      {!review.length && !auth && (
-        <p className="text-sh-grey pt-2 text-base">
+      {!review.length && !currentUser && (
+        <p className="pt-2 text-base text-sh-grey">
           Login and write the first review!
         </p>
       )}
 
       {/* REVIEW FORM */}
-      {auth && (
+      {currentUser && (
         <form
           className="flex flex-col gap-2"
           onSubmit={(e) => submitReview(e, review)}
         >
           <textarea
-            className="active-outline-none bg-h-grey text-drop-black rounded p-3 focus:outline-none"
+            className="active-outline-none rounded bg-h-grey p-3 text-drop-black focus:outline-none"
             value={review}
             onChange={(e) => setReview(e.target.value)}
           />
           <button
             type="submit"
-            className="bg-c-grey text-l-white hover:bg-sh-grey hover:text-b-blue rounded p-1 text-base"
+            className="rounded bg-c-grey p-1 text-base text-l-white hover:bg-sh-grey hover:text-b-blue"
           >
             Send Review
           </button>

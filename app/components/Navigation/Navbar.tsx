@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "../../firebase/firebase";
 import UserNavbar from "./UserNavbar";
 import DropdownDesktop from "./DropdownDesktop";
 import { AuthProviders } from "../Auth/AuthProviders";
@@ -37,9 +36,20 @@ const menuLinks = [
     name: "REVIEWS",
     href: "/reviews",
   },
+  {
+    id: 5,
+    name: "PUBLISH",
+    href: "/editor",
+  }
 ];
 
-const Navbar = ({ userName, profilePic, isLoggedIn, isTransparentNav }) => {
+const Navbar = ({
+  userName,
+  profilePic,
+  isLoggedIn,
+  isTransparentNav,
+  currentUserId,
+}) => {
   const [showLogin, setShowLogin] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMobileSearchOpen, setisMobileSearchOpen] = useState(false);
@@ -114,7 +124,7 @@ const Navbar = ({ userName, profilePic, isLoggedIn, isTransparentNav }) => {
               {isLoggedIn && !showDropdown && (
                 <li className="mt-[-3px]">
                   <UserNavbar
-                    currentUserId={auth?.currentUser?.uid}
+                    currentUserId={currentUserId}
                     profilePic={profilePic}
                     userName={userName}
                     arrowDown={arrowDown}
@@ -127,7 +137,7 @@ const Navbar = ({ userName, profilePic, isLoggedIn, isTransparentNav }) => {
               {isLoggedIn && showDropdown && (
                 <li className="mt-[-3px]">
                   <DropdownDesktop
-                    currentUserId={auth?.currentUser?.uid}
+                    currentUserId={currentUserId}
                     profilePic={profilePic}
                     userName={userName}
                     arrowDown={arrowDown}
@@ -147,7 +157,7 @@ const Navbar = ({ userName, profilePic, isLoggedIn, isTransparentNav }) => {
               {menuLinks?.map((link) => (
                 <li className="ml-4 mt-2" key={link.id}>
                   <Link
-                    className="sans-serif text-sh-grey hover:text-p-white text-xs font-bold tracking-widest"
+                    className="sans-serif text-xs font-bold tracking-widest text-sh-grey hover:text-p-white"
                     href={link.href}
                   >
                     {link.name}
@@ -185,7 +195,11 @@ const Navbar = ({ userName, profilePic, isLoggedIn, isTransparentNav }) => {
               alt="toggle mobile menu navigation"
             />
             {isMobileNavBarOpen && (
-              <DropdownMobile userName={userName} profilePic={profilePic} />
+              <DropdownMobile
+                currentUserId={currentUserId}
+                userName={userName}
+                profilePic={profilePic}
+              />
             )}
           </div>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { auth } from "../../firebase/firebase";
+import { getCurrentUser } from "../../supabase/supabase";
 
 import Link from "next/link";
 import { Review } from "app/types";
@@ -26,9 +26,9 @@ export const MovieReviewCompact = ({
     }
 
     // can show delete button
-    if (auth.currentUser) {
-      setIsAuthor(auth.currentUser.uid === review.uid);
-    }
+    getCurrentUser().then((currentUser) => {
+      setIsAuthor(currentUser?.uid === review.uid);
+    });
   }, [review]);
 
   return (
@@ -45,7 +45,7 @@ export const MovieReviewCompact = ({
         </Link>
       )}
       <div className="flex w-full flex-col">
-        <div className="text-sh-grey flex justify-between text-base">
+        <div className="flex justify-between text-base text-sh-grey">
           <div className="flex items-baseline">
             <Link
               href={"/profile/" + review.uid}
@@ -54,19 +54,19 @@ export const MovieReviewCompact = ({
               {review.userName}
             </Link>
             {review.timestamp && (
-              <p className="text-sh-grey text-xs">, {review.timestamp}</p>
+              <p className="text-xs text-sh-grey">, {review.timestamp}</p>
             )}
           </div>
           {isAuthor && handleDelete && (
             <p
-              className="hover:text-sh-grey hover:cursor-pointer"
+              className="hover:cursor-pointer hover:text-sh-grey"
               onClick={() => handleDelete(review)}
             >
               x
             </p>
           )}
         </div>{" "}
-        <p className="text-sh-grey pt-2">{review.review}</p>
+        <p className="pt-2 text-sh-grey">{review.review}</p>
       </div>
     </div>
   );

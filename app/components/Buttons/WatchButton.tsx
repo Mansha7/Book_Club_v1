@@ -1,10 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Dispatch } from "react";
-import { doc, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
 import watchIcon from "./watched.png";
 import remWatched from "./remWatched.png";
 import Image from "next/image";
-import { auth, db } from "../../firebase/firebase";
+import {
+  addToUserArray,
+  auth,
+  removeFromUserArray,
+} from "../../supabase/supabase";
 import { createWatchedPopup, PopupAction } from "../../utils";
 
 export const WatchButton = ({
@@ -37,11 +40,7 @@ export const WatchButton = ({
     }
 
     const userId = auth.currentUser.uid;
-    const userRef = doc(db, "users", userId);
-
-    await updateDoc(userRef, {
-      watched: arrayUnion({ movieID: id }),
-    }).then(() => {
+    await addToUserArray(userId, "watched", { movieID: id }).then(() => {
       setIsWatched(true);
       createWatchedPopup(title, PopupAction.WATCHED);
     });
@@ -54,10 +53,11 @@ export const WatchButton = ({
     }
 
     const userId = auth.currentUser.uid;
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
-      watched: arrayRemove({ movieID: id }),
-    }).then(() => {
+    await removeFromUserArray(
+      userId,
+      "watched",
+      (movie) => movie?.movieID?.toString() === id.toString()
+    ).then(() => {
       setIsWatched(false);
       createWatchedPopup(title, PopupAction.REMOVED);
     });

@@ -1,14 +1,13 @@
-import { signOut } from "firebase/auth";
 import React from "react";
-import { auth } from "../../firebase/firebase";
+import { signOut } from "../../supabase/supabase";
 import { usePathname, useRouter } from "next/navigation";
 
 export const SignOut = () => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const onSignOut = () => {
-    signOut(auth);
+  const onSignOut = async () => {
+    await signOut();
 
     // go back home, traveler
     if (pathname?.includes("profile")) {
@@ -18,7 +17,7 @@ export const SignOut = () => {
 
   return (
     <p
-      className="block cursor-pointer px-4 pt-2 hover:text-white md:p-0"
+      className="hover:text-white block cursor-pointer px-4 pt-2 md:p-0"
       onClick={onSignOut}
     >
       Sign Out

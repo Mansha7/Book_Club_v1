@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
 import { LayoutNavbar } from "app/components/Navigation/LayoutNavbar";
-import { db } from "app/firebase/firebase";
+import { getAllMovies } from "app/supabase/supabase";
 import { Review } from "app/types";
 import { Footer } from "app/components/Navigation/Footer";
 import { MovieReviewExtended } from "app/components/Review/MovieReviewExtended";
@@ -26,10 +25,8 @@ export default function Page() {
   const [allReviews, setAllReviews] = useState<Review[]>([]);
 
   const fetchAllReviews = async () => {
-    const movieDocs = await getDocs(collection(db, "movies"));
-    const reviews = movieDocs.docs.flatMap(
-      (doc) => doc.data().reviews
-    ) as Review[];
+    const movies = await getAllMovies();
+    const reviews = movies.flatMap((movie) => movie.reviews ?? []) as Review[];
 
     const sorted = reviews.sort(
       (a, b) => toDate(b?.timestamp).getTime() - toDate(a?.timestamp).getTime()
@@ -128,12 +125,12 @@ export default function Page() {
       <LayoutNavbar />
       <div className="site-body pt-5">
         <div className="flex min-h-[80vh] flex-col px-4 font-['Graphik'] md:mx-auto md:my-0 md:w-[950px]">
-          <div className="border-b-grey text-sh-grey mb-3 flex justify-between border-b border-solid text-sm">
+          <div className="mb-3 flex justify-between border-b border-solid border-b-grey text-sm text-sh-grey">
             <p>REVIEWS OF CLONNERBOXD</p>
 
-            {isLoading && <p className="text-sh-grey text-base">Loading...</p>}
+            {isLoading && <p className="text-base text-sh-grey">Loading...</p>}
             {!isLoading && (
-              <p className="text-sh-grey text-base">
+              <p className="text-base text-sh-grey">
                 {allReviews.length} total reviews
               </p>
             )}
@@ -154,7 +151,7 @@ export default function Page() {
             <div className="infinite-scroll">
               {reviews.map((review, i) => (
                 <div
-                  className="border-sh-grey/10 bg-review-bg/30 my-2 flex w-full justify-between gap-4 rounded-md border border-solid p-2"
+                  className="my-2 flex w-full justify-between gap-4 rounded-md border border-solid border-sh-grey/10 bg-review-bg/30 p-2"
                   key={i}
                 >
                   <MovieReviewCompact review={review} key={i} />
@@ -163,7 +160,7 @@ export default function Page() {
                     <div className="flex flex-col items-end justify-end">
                       <Link
                         href={"/movie/" + review.movieID}
-                        className="text-sh-grey hover:text-hov-blue pb-2"
+                        className="pb-2 text-sh-grey hover:text-hov-blue"
                       >
                         {movieMap[review.movieID].title}
                       </Link>

@@ -1,15 +1,44 @@
 "use client";
 import { LayoutNavbar } from "app/components/Navigation/LayoutNavbar";
-import React, { Usable, use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import filterOptions from "./filtering/arrays";
 import { Filter } from "app/components/Filter/Filter";
-import { PopularMovies } from "app/components/Home/PopularMovies";
-import { FilterResults } from "app/components/Filter/FilterResults";
+import { PopularBooks } from "app/components/Home/PopularBooks";
 import { useRouter } from "next/navigation";
 import { Footer } from "app/components/Navigation/Footer";
 
 import { useSearchParams } from "next/navigation";
+
+const getSubjectFromGenre = (genre?: string) => {
+  if (!genre) return "fiction";
+  return genre.toLowerCase().replace(/\s+/g, "_");
+};
+
+const getBooksUrl = (subject: string, limit = 24) =>
+  `https://openlibrary.org/subjects/${encodeURIComponent(subject)}.json?limit=${limit}&offset=1`;
+
+const getFilteredBooks = (books: any[], activeFilters: { [key: string]: string }) => {
+  let filteredBooks = books.filter((book) => !!book.cover_id);
+
+  if (activeFilters.years) {
+    const startYear = parseInt(activeFilters.years.slice(0, -1));
+    const endYear = startYear + 9;
+
+    filteredBooks = filteredBooks.filter((book) => {
+      const publishYear = Number(book.first_publish_year);
+      return publishYear >= startYear && publishYear <= endYear;
+    });
+  }
+
+  if (activeFilters.ratings === "Highest First") {
+    filteredBooks = [...filteredBooks].sort((a, b) => (b.edition_count ?? 0) - (a.edition_count ?? 0));
+  } else if (activeFilters.ratings === "Lowest First") {
+    filteredBooks = [...filteredBooks].sort((a, b) => (a.edition_count ?? 0) - (b.edition_count ?? 0));
+  }
+
+  return filteredBooks;
+};
 
 export default function Page() {
   const searchParams = useSearchParams();
@@ -19,7 +48,7 @@ export default function Page() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [filterResults, setFilterResults] = useState<any[] | null>(null);
-  const [popularMovies, setPopularMovies] = useState<any[] | null>(null);
+  const [popularBooks, setPopularBooks] = useState<any[] | null>(null);
 
   useEffect(() => {
     const initialFilters: { [key: string]: string } = {};
@@ -45,56 +74,30 @@ export default function Page() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
+
       if (Object.keys(activeFilters).length === 0) {
-        const res = await fetch(
-          `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
-        );
+        const res = await fetch(getBooksUrl("fiction", 24));
         const data = await res.json();
-        setPopularMovies(data.results);
+        setPopularBooks(data.works);
         setFilterResults(null);
         setIsLoading(false);
         return;
       }
 
-      let url = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US&vote_count.gte=100`;
+      const subject = getSubjectFromGenre(activeFilters.genres);
+      const url = getBooksUrl(subject, 100);
 
-      if (activeFilters.genres) {
-        const genreRes = await fetch(
-          `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&language=en-US`
-        );
-        const genreData = await genreRes.json();
-        const genreId = genreData.genres.find((gen: any) => gen.name === activeFilters.genres)?.id;
-        if (genreId) {
-          url += `&with_genres=${genreId}`;
-        }
-      }
-
-      if (activeFilters.ratings) {
-        if (activeFilters.ratings === "Highest First") {
-          url += `&sort_by=vote_average.desc`;
-        } else if (activeFilters.ratings === "Lowest First") {
-          url += `&sort_by=vote_average.asc`;
-        }
-      }
-
-      if (activeFilters.years) {
-        const startYear = parseInt(activeFilters.years.slice(0, -1));
-        const endYear = startYear + 9;
-        url += `&primary_release_date.gte=${startYear}-01-01&primary_release_date.lte=${endYear}-12-31`;
-      }
-
-      setIsLoading(true);
-      console.log("final url", url);
       try {
         const res = await fetch(url);
         const data = await res.json();
-        const filtered = data.results?.filter((m: any) => m.poster_path !== null) || [];
-        setFilterResults(filtered);
-        setPopularMovies(null);
+        const books = getFilteredBooks(data.works ?? [], activeFilters);
+        setFilterResults(books);
+        setPopularBooks(null);
       } catch (error) {
-        console.error("Error fetching movies:", error);
+        console.error("Error fetching books:", error);
         setFilterResults([]);
-        setPopularMovies(null);
+        setPopularBooks(null);
       }
       setIsLoading(false);
     };
@@ -154,8 +157,8 @@ export default function Page() {
           </div>
 
           {isLoading && <p className="text-base text-sh-grey">Loading..</p>}
-          {!isLoading && popularMovies && <PopularMovies movies={popularMovies} />}
-          {!isLoading && filterResults && <FilterResults movies={filterResults} />}
+          {!isLoading && popularBooks && <PopularBooks books={popularBooks} />}
+          {!isLoading && filterResults && <PopularBooks books={filterResults} />}
         </div>
       </div>
       <Footer />

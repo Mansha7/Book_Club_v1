@@ -4,10 +4,9 @@ import Link from "next/link";
 import { SignInWithGoogle } from "../Auth/SignInWithGoogle";
 import { SignInWithDemo } from "../Auth/SignInWithDemo";
 import { SignOut } from "../Auth/SignOut";
-import { auth } from "../../firebase/firebase";
 
 // @to-do click outside
-export const DropdownMobile = ({ userName, profilePic }) => {
+export const DropdownMobile = ({ currentUserId, userName, profilePic }) => {
   const dropdownList = [
     {
       id: "1",
@@ -33,12 +32,12 @@ export const DropdownMobile = ({ userName, profilePic }) => {
 
   return (
     <div
-      className="mobile-dropdown-nav active sans-serif bg-h-blue static absolute left-0 top-[2.3rem] z-50
-        w-full flex-col rounded-sm p-2"
+      className="mobile-dropdown-nav active sans-serif static absolute left-0 top-[2.3rem] z-50 w-full
+        flex-col rounded-sm bg-h-blue p-2"
     >
-      {auth.currentUser?.uid && (
+      {currentUserId && (
         <div className="mx-4 flex items-center gap-1 py-1">
-          <Link href={"/profile/" + auth.currentUser.uid}>
+          <Link href={"/profile/" + currentUserId}>
             <Image
               src={profilePic}
               alt={userName}
@@ -48,22 +47,22 @@ export const DropdownMobile = ({ userName, profilePic }) => {
             />
           </Link>
           <Link
-            href={"/profile/" + auth.currentUser.uid}
-            className=" text-p-white hover:text-p-white font-semibold uppercase hover:cursor-pointer"
+            href={"/profile/" + currentUserId}
+            className=" font-semibold uppercase text-p-white hover:cursor-pointer hover:text-p-white"
           >
             {userName}
           </Link>
         </div>
       )}
 
-      <ul className="sans-serif bg-h-blue text-sh-grey mx-3 rounded-sm py-3 font-bold uppercase tracking-widest">
+      <ul className="sans-serif mx-3 rounded-sm bg-h-blue py-3 font-bold uppercase tracking-widest text-sh-grey">
         <li className="divider-mobile"></li>
 
         <li className="grid grid-cols-2 py-2">
           {dropdownList.map((L) => (
             <Link
               key={L.id}
-              className="hover:text-p-white mx-3 py-1"
+              className="mx-3 py-1 hover:text-p-white"
               href={L.link}
             >
               {L.name}
@@ -71,7 +70,7 @@ export const DropdownMobile = ({ userName, profilePic }) => {
           ))}
         </li>
         <li className="divider-mobile"></li>
-        {auth.currentUser ? (
+        {currentUserId ? (
           <li className="mx-3 grid grid-cols-2 py-3">
             <Link href="/settings" className="block pt-2">
               Settings

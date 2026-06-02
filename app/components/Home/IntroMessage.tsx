@@ -37,6 +37,9 @@ export const IntroMessage = ({ user }: { user: any }) => {
         <Link href="/reviews" className="text-p-white hover:text-hov-blue">
           Read all the reviews on the platform
         </Link>
+        <Link href="/content" className="text-p-white hover:text-hov-blue">
+          Write and publish your own content on this platform
+        </Link>
         <span className="text-h-grey">
           {" "}
           or press the search icon in the header, and leave a review to your

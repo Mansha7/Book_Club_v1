@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutNavbar } from "app/components/Navigation/LayoutNavbar";
-import React, { Usable, use, useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { FilterResults } from "app/components/Filter/FilterResults";
 import { Footer } from "app/components/Navigation/Footer";
 
@@ -11,27 +11,31 @@ export default function Page({ searchParams }: { searchParams: any }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [movies, setMovies] = useState<any[] | null>();
+  const [books, setBooks] = useState<any[] | null>();
 
-  const fetchMoviesBySearchTerm = async () => {
+  const fetchBooksBySearchTerm = async () => {
     setIsLoading(true);
 
     const res = await fetch(
-      `https://api.themoviedb.org/3/search/movie?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&query=${searchTerm}`
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(searchTerm)}&limit=20`
     );
 
     if (!res.ok) {
-      console.error("error fetching movies with your search term");
+      console.error("error fetching books with your search term");
       setIsLoading(false);
       return;
     }
 
     const data = await res.json();
 
-    // skip those that don't have an image
-    const validMovieResults = data.results.filter((movie) => movie.poster_path !== null);
+    const validBookResults = data.docs
+      .filter((book: any) => !!book.cover_i)
+      .map((book: any) => ({
+        ...book,
+        cover_id: book.cover_i,
+      }));
 
-    setMovies(validMovieResults);
+    setBooks(validBookResults);
 
     setIsLoading(false);
   };
@@ -48,7 +52,7 @@ export default function Page({ searchParams }: { searchParams: any }) {
 
   useEffect(() => {
     if (searchTerm) {
-      fetchMoviesBySearchTerm();
+      fetchBooksBySearchTerm();
     }
   }, [searchTerm]);
 
@@ -59,7 +63,7 @@ export default function Page({ searchParams }: { searchParams: any }) {
         <div className="px-4 font-['Graphik'] md:mx-auto md:my-0 md:flex md:w-[950px] md:flex-col">
           {isLoading && <p className="text-base text-sh-grey">Loading..</p>}
 
-          {movies && <FilterResults movies={movies} />}
+          {books && <FilterResults books={books} />}
         </div>
 
         <Footer />

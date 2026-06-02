@@ -1,8 +1,7 @@
 "use client";
 
-import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { auth } from "app/firebase/firebase";
+import { createUserIfMissing, onAuthStateChanged } from "app/supabase/supabase";
 import Navbar from "./Navbar";
 
 export const LayoutNavbar = ({ newUserName }: { newUserName?: string }) => {
@@ -13,15 +12,20 @@ export const LayoutNavbar = ({ newUserName }: { newUserName?: string }) => {
   const [isTransparentNav, setIsTransparentNav] = useState(true);
 
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
         setIsLoggedIn(true);
+        createUserIfMissing(user).catch((err) => {
+          console.error("Error creating Supabase user profile:", err);
+        });
       } else {
         setIsLoggedIn(false);
         setIsTransparentNav(true);
       }
     });
+
+    return unsubscribe;
   }, []);
 
   useEffect(() => {}, [newUserName]);
@@ -29,6 +33,7 @@ export const LayoutNavbar = ({ newUserName }: { newUserName?: string }) => {
     <Navbar
       userName={newUserName || user?.displayName}
       profilePic={user?.photoURL}
+      currentUserId={user?.uid}
       isLoggedIn={isLoggedIn}
       isTransparentNav={isTransparentNav}
     />

@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase/firebase";
+import { onAuthStateChanged } from "./supabase/supabase";
 import { Home } from "./components/Home/Home";
 import { HomeSignedOut } from "./components/Home/HomeSignedOut";
 import { LayoutNavbar } from "./components/Navigation/LayoutNavbar";
@@ -9,26 +8,27 @@ import { Footer } from "./components/Navigation/Footer";
 
 export default function Page() {
   const [user, setUser] = useState<any>();
-  const [movies, setMovies] = useState<any>();
+  const [books, setBooks] = useState<any>();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const fetchPopularMovies = async () => {
+  const fetchPopularBooks = async () => {
     const res = await fetch(
-      `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
+      // `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
+      `https://openlibrary.org/subjects/fiction.json?limit=6&offset=1`
     );
 
     if (!res.ok) {
-      console.error("error fetching popular movies");
+      console.error("error fetching popular books");
       return;
     }
 
     const data = await res.json();
 
-    setMovies(data.results);
+    setBooks(data.works);
   };
 
   useEffect(() => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
         setIsLoggedIn(true);
@@ -37,14 +37,16 @@ export default function Page() {
       }
     });
 
-    fetchPopularMovies();
+    fetchPopularBooks();
+
+    return unsubscribe;
   }, []);
   return (
     <>
       <LayoutNavbar />
-      {isLoggedIn && <Home movies={movies} user={user} />}
+      {isLoggedIn && <Home books={books} user={user} />}
 
-      {!isLoggedIn && <HomeSignedOut movies={movies} />}
+      {!isLoggedIn && <HomeSignedOut books={books} />}
 
       <Footer />
     </>

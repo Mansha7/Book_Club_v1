@@ -2,12 +2,16 @@
 import { Footer } from "app/components/Navigation/Footer";
 import { LayoutNavbar } from "app/components/Navigation/LayoutNavbar";
 import { User } from "app/types";
-import { updateProfile } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 import React, { useEffect, useState } from "react";
-import { auth, db } from "app/firebase/firebase";
+import {
+  auth,
+  getCurrentUser,
+  getUserById,
+  updateCurrentUserProfile,
+  updateUserById,
+} from "app/supabase/supabase";
 
 export default function Page() {
   const router = useRouter();
@@ -26,7 +30,7 @@ export default function Page() {
   function onSave() {
     if (!auth.currentUser) return;
 
-    updateProfile(auth.currentUser, { displayName: name })
+    updateCurrentUserProfile(name)
       .then(() => {
         updateFirestoreUser(auth.currentUser!.uid);
         initSettingsForm();
@@ -37,8 +41,7 @@ export default function Page() {
   }
 
   const updateFirestoreUser = async (id: string) => {
-    const userSnap = doc(db, "users", id);
-    await updateDoc(userSnap, { name, bio });
+    await updateUserById(id, { name, bio });
 
     onProfileSaved();
   };
@@ -49,11 +52,11 @@ export default function Page() {
   };
 
   const initSettingsForm = async () => {
-    if (!auth.currentUser) return;
+    const currentUser = auth.currentUser ?? (await getCurrentUser());
+    if (!currentUser) return;
 
-    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-    if (userDoc.exists()) {
-      const user = userDoc.data() as User;
+    const user = (await getUserById(currentUser.uid)) as User | null;
+    if (user) {
       setName(user.name);
       setBio(user.bio);
     }
@@ -61,17 +64,17 @@ export default function Page() {
 
   useEffect(() => {
     initSettingsForm();
-  }, [auth.currentUser, auth]);
+  }, []);
 
   return (
     <>
       <LayoutNavbar newUserName={newUserName} />
       <div className="flex min-h-[80vh] flex-col items-center justify-start py-5 md:mx-auto md:my-0 md:w-[950px]">
-        <h1 className="text-sh-grey text-center text-3xl">Settings</h1>
+        <h1 className="text-center text-3xl text-sh-grey">Settings</h1>
 
         <form className="flex w-1/2 flex-col gap-6">
           <fieldset className="w-full">
-            <legend className="border-b-grey text-sh-grey mb-3 w-full cursor-default border-b border-solid text-base">
+            <legend className="mb-3 w-full cursor-default border-b border-solid border-b-grey text-base text-sh-grey">
               Change your username
             </legend>
             <input
@@ -83,7 +86,7 @@ export default function Page() {
           </fieldset>
 
           <fieldset className="w-full">
-            <legend className="border-b-grey text-sh-grey mb-3 w-full cursor-default border-b border-solid text-base">
+            <legend className="mb-3 w-full cursor-default border-b border-solid border-b-grey text-base text-sh-grey">
               Change your bio
             </legend>
 
@@ -97,14 +100,14 @@ export default function Page() {
 
         <div className="mt-10 flex items-center justify-center gap-4">
           <button
-            className="sans-serif text-p-white bg-b-green rounded px-3 py-2 text-xs font-bold"
+            className="sans-serif rounded bg-b-green px-3 py-2 text-xs font-bold text-p-white"
             onClick={onSave}
           >
             {" "}
             Save profile
           </button>
           <button
-            className="sans-serif text-p-white rounded bg-[#567] px-3 py-2 text-xs font-bold"
+            className="sans-serif rounded bg-[#567] px-3 py-2 text-xs font-bold text-p-white"
             onClick={navigateToProfile}
           >
             Go back to profile

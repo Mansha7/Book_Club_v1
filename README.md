@@ -4,7 +4,7 @@
 
 - Fully responsive clone of a popular social movie tracking and reviewing platform
 - Search, save and review your favourite movies, fetched from The Movie Database ’s API
-- Implement Google Auth using BaaS Firebase Auth and store all users' information in Firestore DB
+- Implement Google Auth using Supabase Auth and store users' information in Supabase tables
 - Live preview on [Vercel's Hosting](https://clonnerboxd.vercel.app/).
 
 ## Live Demo
@@ -31,18 +31,14 @@ npm install
 
 Get an API key from [TMDB](https://developer.themoviedb.org/reference/intro/getting-started)
 
-Create a new project from [Firebase Console](https://console.firebase.google.com/u/0/) and connect it
+Create a new project from [Supabase](https://supabase.com/) and connect it
 
-Create a `.env` file at the root of the repository with the following values for the [firebase](https://firebase.google.com/docs/web/learn-more#config-object) and API key:
+Create a `.env` file at the root of the repository with the following values for Supabase and TMDB:
 
 ```
-NEXT_PUBLIC_API_KEY = "your-firebase-api-key"
-NEXT_PUBLIC_APP_ID = "your-firebase-app-id"
-NEXT_PUBLIC_MESSAGING_ID = "your-firebase-messaging-id"
-NEXT_PUBLIC_AUTH_DOMAIN = "your-firebase-auth-domain-id"
-NEXT_PUBLIC_PROJECT_ID = "your-firebase-project-id"
-NEXT_PUBLIC_STORAGE_BUCKET = "your-firebase-storage-bucket"
-NEXT_PUBLIC_TMDB_API_KEY="your-TMDB-api-key"
+NEXT_PUBLIC_SUPABASE_URL="https://your-project-ref.supabase.co"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-supabase-publishable-key"
+NEXT_PUBLIC_TMDB_API_KEY="your-tmdb-api-key"
 ```
 
 ```

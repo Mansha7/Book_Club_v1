@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../../firebase/firebase";
+import { auth, getUserById } from "../../supabase/supabase";
 import { WatchButton } from "../Buttons/WatchButton";
 import FavouriteButton from "../Buttons/FavoriteButton";
 
@@ -23,10 +22,12 @@ export default function MoviePoster({
   const setIsMovieFavourite = async () => {
     if (!auth || !auth.currentUser) return;
     const userId = auth.currentUser.uid;
-    const userDoc = await getDoc(doc(db, "users", userId));
+    const user = await getUserById(userId);
 
-    const userFavs = userDoc?.data()?.favourites;
-    const isFavorite = userFavs.some((movies) => movies?.movieID === id);
+    const userFavs = user?.favourites ?? [];
+    const isFavorite = userFavs.some(
+      (movies) => movies?.movieID?.toString() === id.toString()
+    );
     setIsFavourite(isFavorite);
   };
 
@@ -34,10 +35,12 @@ export default function MoviePoster({
     if (!auth || !auth.currentUser) return;
 
     const userId = auth.currentUser.uid;
-    const userDoc = await getDoc(doc(db, "users", userId));
+    const user = await getUserById(userId);
 
-    const userWatched = userDoc?.data()?.watched;
-    const isWatched = userWatched.some((movies) => movies?.movieID === id);
+    const userWatched = user?.watched ?? [];
+    const isWatched = userWatched.some(
+      (movies) => movies?.movieID?.toString() === id.toString()
+    );
     setIsWatched(isWatched);
   };
 
@@ -59,7 +62,7 @@ export default function MoviePoster({
     >
       {/* Movie Poster Image */}
       <Image
-        className="border-pb-grey/25 block h-40 w-28 rounded border border-solid shadow-[0_0_1px_1px_rgba(20,24,28,1)] shadow-inner md:h-80 md:w-56"
+        className="block h-40 w-28 rounded border border-solid border-pb-grey/25 shadow-[0_0_1px_1px_rgba(20,24,28,1)] shadow-inner md:h-80 md:w-56"
         width={300}
         height={300}
         src={poster}

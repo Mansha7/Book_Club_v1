@@ -2,8 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "app/firebase/firebase";
+import { auth, getCurrentUser, getUserById } from "app/supabase/supabase";
 import { ProfileBio } from "app/components/Profile/ProfileBio";
 import { LayoutNavbar } from "app/components/Navigation/LayoutNavbar";
 import { ProfileMoviesHighlight } from "app/components/Profile/ProfileMoviesHighlight";
@@ -27,26 +26,23 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const initProfilePage = async () => {
     setLoading(true);
 
-    const userSnap = await getDoc(doc(db, "users", id));
-    if (userSnap.exists()) {
-      const user = userSnap.data() as User;
+    const user = (await getUserById(id)) as User | null;
+    if (user) {
       setUser(user);
 
-      setReviews(user.reviews.reverse().slice(0, 6));
-      setWatched(user.watched);
-      setFavourites(user.favourites);
+      setReviews([...(user.reviews ?? [])].reverse().slice(0, 6));
+      setWatched(user.watched ?? []);
+      setFavourites(user.favourites ?? []);
     }
 
     setLoading(false);
   };
 
   const setMovies = async () => {
-    const userSnap = await getDoc(doc(db, "users", id));
-    if (userSnap.exists()) {
-      const user = userSnap.data() as User;
-
-      setWatched(user.watched);
-      setFavourites(user.favourites);
+    const user = (await getUserById(id)) as User | null;
+    if (user) {
+      setWatched(user.watched ?? []);
+      setFavourites(user.favourites ?? []);
     }
   };
 
@@ -59,8 +55,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   }, [id, router]);
 
   useEffect(() => {
-    setIsAuthor(auth.currentUser?.uid === user.uid);
-  }, [auth.currentUser, user]);
+    const resolveAuthor = async () => {
+      const currentUser = auth.currentUser ?? (await getCurrentUser());
+      setIsAuthor(currentUser?.uid === user.uid);
+    };
+
+    resolveAuthor();
+  }, [user]);
 
   if (loading) return <p>Loading...</p>;
   if (!loading && !user) return <p>Error loading user.</p>;
