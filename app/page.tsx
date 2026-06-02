@@ -13,7 +13,7 @@ export default function Page() {
 
   const fetchPopularBooks = async () => {
     const res = await fetch(
-      // `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
+      // `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY} `
       `https://openlibrary.org/subjects/fiction.json?limit=6&offset=1`
     );
 
